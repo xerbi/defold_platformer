@@ -1,0 +1,6 @@
+name: "main"
+collection_instances {
+  id: "character"
+  collection: "/main/objects/character.collection"
+}
+scale_along_z: 0

@@ -1,0 +1,221 @@
+SPEED_WALK = 100
+JUMP_SPEED = 200
+GRAVITY = 500
+FALL_SPEED = -100
+LEFT_WALL = -1
+RIGHT_WALL = 1
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	msg.post("#camera", "acquire_camera_focus")
+	msg.post("@render:", "use_camera_projection")
+	self.velocity = vmath.vector3()
+	self.direction = 0
+	self.animation = nil
+	self.is_ground = false
+	self.right_wall = false
+	self.left_wall = false
+	self.correction = vmath.vector3()
+
+	self.jump = false
+	--был ли соверше двойной прыжок
+	self.is_double_jump = false
+	--длина луча для определения припятствия
+	self.ray_lenght = 16 - 4
+	--текущая нажатая клавиша
+	self.action_id = nil
+	--расположение персонажа в пространстве
+	self.up_ray_dote = false
+
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+local function draw_line(from, to)
+	msg.post("@render:", "draw_line", { start_point = from, end_point = to, color = vmath.vector4(1,0,0,1) })
+end
+
+local function check_moving_x(self, current_position)
+	local delay = 4
+	--две конечные точки для векторов справа
+	local up_ray_right = vmath.vector3(current_position.x + self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
+	local down_ray_right = vmath.vector3(current_position.x + self.ray_lenght, current_position.y - self.ray_lenght, 0)
+	--две конечные точки для векторов слева
+	local up_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
+	local down_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y - self.ray_lenght, 0)
+	--две начальные точки для векторов
+	local up_point = vmath.vector3(current_position.x, current_position.y + self.ray_lenght - delay, 0)
+	local down_point = vmath.vector3(current_position.x, current_position.y - self.ray_lenght, 0)
+	--группа с которой взаимодействуем
+	local my_groups = { hash("ground") }
+	
+	-- draw_line(down_point, down_ray_left)
+	
+	if (physics.raycast(up_point, up_ray_right, my_groups)
+	or physics.raycast(down_point, down_ray_right, my_groups)) then
+		self.right_wall = true
+	else
+		self.right_wall = false
+	end
+	if (physics.raycast(up_point, up_ray_left, my_groups)
+	or physics.raycast(down_point, down_ray_left, my_groups)) then
+		self.left_wall = true
+	else
+		self.left_wall = false
+	end
+end
+
+local function check_moving_y(self, current_position)
+	local delay = 4
+	--две конечные точки для векторов снизу
+	local left_ray_down = vmath.vector3(current_position.x - self.ray_lenght + 4, current_position.y - self.ray_lenght - delay, 0)
+	local right_ray_down = vmath.vector3(current_position.x + self.ray_lenght - 4, current_position.y - self.ray_lenght - delay, 0)
+	--две конечные точки для векторов сверху
+	-- local up_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
+	-- local down_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y - self.ray_lenght, 0)
+	--две начальные точки для векторов
+	local left_position = vmath.vector3(current_position.x - self.ray_lenght + 4, current_position.y, 0)
+	local right_position = vmath.vector3(current_position.x + self.ray_lenght - 4, current_position.y, 0)
+	--группа с которой взаимодействуем
+	local my_groups = { hash("ground") }
+
+	draw_line(left_position, left_ray_down)
+	draw_line(right_position, right_ray_down)
+	pprint(physics.raycast(left_position, left_ray_down, my_groups))
+	if (physics.raycast(left_position, left_ray_down, my_groups)
+	or physics.raycast(right_position, right_ray_down, my_groups)) then
+		self.velocity.y = 0
+		self.is_ground = true
+	else
+		self.is_ground = false
+	end
+	-- if (physics.raycast(up_point, up_ray_left, my_groups)
+	-- or physics.raycast(down_point, down_ray_left, my_groups)) then
+	-- 	self.left_wall = true
+	-- else
+	-- 	self.left_wall = false
+	-- end
+end
+
+function update(self, dt)
+	--текущее положение объекта
+	local current_position = go.get_position()
+	check_moving_x(self, current_position)
+	if (self.jump) then self.jump = false
+	else check_moving_y(self, current_position) end
+	--применение гравитации
+	self.velocity.y = self.velocity.y - GRAVITY * dt
+	if (self.is_ground
+	or (self.right_wall and self.action_id == hash('right'))
+	or (self.left_wall and self.action_id == hash('left'))) then
+		self.velocity.y = 0
+		--сбрасываем двойно прыжок
+		self.is_double_jump = false
+		self.jump = false
+	end
+	--направление спрайта (flip)
+	if (self.direction > 0 or self.right_wall) then
+		sprite.set_hflip("#sprite", false)
+	else
+		sprite.set_hflip("#sprite", true)
+	end
+	--включение анимации
+	if (self.direction > 0 and self.is_ground) then
+		if (self.animation ~= hash('walk')) then
+			sprite.play_flipbook("#sprite", hash("walk"))
+		end
+		self.animation = hash('walk')
+	elseif (self.direction < 0 and self.is_ground) then
+		if (self.animation ~= hash('walk')) then
+			sprite.play_flipbook("#sprite", hash("walk"))
+		end
+		self.animation = hash('walk')
+	elseif (self.velocity.y < 0) then
+		sprite.play_flipbook("#sprite", hash("fall"))
+		self.animation = hash('fall')
+	elseif (self.velocity.y > 0) then
+		sprite.play_flipbook("#sprite", hash("jump"))
+		self.animation = hash('jump')
+	elseif ((self.right_wall or self.left_wall) and self.is_ground ~= true) then
+		sprite.play_flipbook("#sprite", hash("wall_jump"))
+		self.animation = hash('wall_jump')
+	elseif (self.action_id == hash('double_jump')) then
+		sprite.play_flipbook("#sprite", hash("double_jump"))
+		self.animation = hash('double_jump')
+	else
+		if (self.animation ~= hash('idle')) then
+			sprite.play_flipbook("#sprite", hash("idle"))
+		end
+		self.animation = hash('idle')
+	end	
+	--установка новой позиции
+	go.set_position(current_position + self.velocity * dt)
+	self.velocity.x = 0
+	self.direction = 0
+	-- self.is_ground = false
+	self.action_id = nil
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("contact_point_response") then
+		-- pprint("Мы столкнулись")
+		-- -- Get the info needed to move out of collision. We might
+		-- -- get several contact points back and have to calculate
+		-- -- how to move out of all of them by accumulating a
+		-- -- correction vector for this frame:
+		-- if message.distance > 0 then
+		-- 	-- First, project the accumulated correction onto
+		-- 	-- the penetration vector
+		-- 	local proj = vmath.project(self.correction, message.normal * message.distance)
+		-- 	if proj < 1 then
+		-- 		-- Only care for projections that does not overshoot.
+		-- 		local comp = (message.distance - message.distance * proj) * message.normal
+		-- 		-- Apply compensation
+		-- 		go.set_position(go.get_position() + comp)
+		-- 		-- Accumulate correction done
+		-- 		self.correction = self.correction + comp
+		-- 	end
+		-- end
+		-- if (message.normal.y > 0) then
+		-- 	self.velocity.y = 0
+		-- 	self.is_ground = true
+		-- end
+	end
+end
+
+local function walk(self)
+	self.velocity.x = SPEED_WALK * self.direction
+end
+
+local function jump(self)
+	pprint('this is jump')
+	self.velocity.y = JUMP_SPEED
+	self.is_ground = false
+	self.jump = true
+end
+
+function on_input(self, action_id, action)
+	if (action_id == hash('right')) then
+		if (self.right_wall ~= true) then self.direction = 1 end
+		self.action_id = hash('right')
+	end
+	if (action_id == hash('left')) then
+		if (self.left_wall ~= true) then self.direction = -1 end
+		self.action_id = hash('left')
+	end
+	walk(self)
+	if (self.is_ground) then
+		if (action_id == hash('jump') and action.pressed) then
+			jump(self)
+			self.action_id = hash('jump')
+		end
+	elseif (self.is_double_jump ~= true) then
+		-- self.is_double_jump = true
+		-- jump(self)
+		-- self.action_id = hash('double_jump')
+	end
+end

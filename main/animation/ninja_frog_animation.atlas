@@ -1,0 +1,142 @@
+animations {
+  id: "idle"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_0.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_1.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_2.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_3.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_4.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_5.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_6.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_7.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_8.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Idle/Idle_9.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 20
+}
+animations {
+  id: "walk"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_0.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_1.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_2.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_3.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_4.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_5.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_6.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_7.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_8.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Run/Run_9.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 20
+}
+animations {
+  id: "hit"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_0.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_1.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_2.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_3.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_4.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_5.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Hit/Hit_6.png"
+  }
+  fps: 20
+}
+animations {
+  id: "jump"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Jump/Jump_0.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 20
+}
+animations {
+  id: "double_jump"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_0.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_1.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_2.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_3.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_4.png"
+  }
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Double_jump/Double_Jump_5.png"
+  }
+  fps: 20
+}
+animations {
+  id: "wall_jump"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Wall_jump/Wall Jump_0.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 20
+}
+animations {
+  id: "fall"
+  images {
+    image: "/main/images/Main Characters/Ninja Frog/Fall/Fall_0.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 20
+}
+extrude_borders: 2

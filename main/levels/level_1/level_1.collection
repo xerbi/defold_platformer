@@ -1,0 +1,31 @@
+name: "level_1"
+collection_instances {
+  id: "character"
+  collection: "/main/objects/character.collection"
+  position {
+    x: 136.0
+    y: 282.0
+  }
+}
+scale_along_z: 0
+embedded_instances {
+  id: "terrain"
+  data: "components {\n"
+  "  id: \"level_1\"\n"
+  "  component: \"/main/levels/level_1/level_1.tilemap\"\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"level_ground\"\n"
+  "  type: \"collisionobject\"\n"
+  "  data: \"collision_shape: \\\"/main/levels/level_1/level_1.tilemap\\\"\\n"
+  "type: COLLISION_OBJECT_TYPE_STATIC\\n"
+  "mass: 0.0\\n"
+  "friction: 0.1\\n"
+  "restitution: 0.5\\n"
+  "group: \\\"ground\\\"\\n"
+  "mask: \\\"character\\\"\\n"
+  "locked_rotation: true\\n"
+  "\"\n"
+  "}\n"
+  ""
+}
