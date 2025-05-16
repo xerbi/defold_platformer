@@ -39,6 +39,6 @@ max_time_step = 0.5
 fixed_update_frequency = 60
 
 [physics]
-use_fixed_timestep = 1
-debug = 1
+use_fixed_timestep = 0
+debug = 0
 

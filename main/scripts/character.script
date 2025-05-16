@@ -20,8 +20,10 @@ function init(self)
 	self.jump = false
 	--был ли соверше двойной прыжок
 	self.is_double_jump = false
+	--размеры спрайта
+	self.size_spite = go.get("go#sprite", "size")
 	--длина луча для определения припятствия
-	self.ray_lenght = 16 - 4
+	self.ray_length = self.size_spite.x / 2
 	--текущая нажатая клавиша
 	self.action_id = nil
 	--расположение персонажа в пространстве
@@ -38,67 +40,75 @@ end
 local function draw_line(from, to)
 	msg.post("@render:", "draw_line", { start_point = from, end_point = to, color = vmath.vector4(1,0,0,1) })
 end
+--создание трех векторов по условиям:
+--current_position - вектор, который будет меняться,
+--static_pos -- вектор постоянной длинны,
+--vector_steps -- вектор изменения.
+local function create_rays_points(current_position, static_pos, vector_steps)
+	local number_points = 3
+	local save_object = {}
+	local change_in_x = vector_steps.x
+	local change_in_y = vector_steps.y
+	for i = 1, number_points do
+		table.insert(save_object, vmath.vector3(
+		current_position.x + static_pos.x + change_in_x,
+		current_position.y + static_pos.y + change_in_y,
+		current_position.z))
+		change_in_x = change_in_x - vector_steps.x
+		change_in_y = change_in_y - vector_steps.y
+	end
+	return save_object
+end
 
 local function check_moving_x(self, current_position)
-	local delay = 4
-	--две конечные точки для векторов справа
-	local up_ray_right = vmath.vector3(current_position.x + self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
-	local down_ray_right = vmath.vector3(current_position.x + self.ray_lenght, current_position.y - self.ray_lenght, 0)
-	--две конечные точки для векторов слева
-	local up_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
-	local down_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y - self.ray_lenght, 0)
-	--две начальные точки для векторов
-	local up_point = vmath.vector3(current_position.x, current_position.y + self.ray_lenght - delay, 0)
-	local down_point = vmath.vector3(current_position.x, current_position.y - self.ray_lenght, 0)
-	--группа с которой взаимодействуем
+	local start_points = create_rays_points(current_position,
+		vmath.vector3(0, 0, 0), vmath.vector3(0, self.ray_length - 2, 0))
+	local end_left_points = create_rays_points(current_position,
+		vmath.vector3(- self.ray_length + 5, 0, 0), vmath.vector3(0, self.ray_length - 2, 0))
+	local end_right_points = create_rays_points(current_position,
+		vmath.vector3(self.ray_length - 5, 0, 0), vmath.vector3(0, self.ray_length - 2, 0))
 	local my_groups = { hash("ground") }
-	
-	-- draw_line(down_point, down_ray_left)
-	
-	if (physics.raycast(up_point, up_ray_right, my_groups)
-	or physics.raycast(down_point, down_ray_right, my_groups)) then
-		self.right_wall = true
-	else
-		self.right_wall = false
-	end
-	if (physics.raycast(up_point, up_ray_left, my_groups)
-	or physics.raycast(down_point, down_ray_left, my_groups)) then
-		self.left_wall = true
-	else
-		self.left_wall = false
+	self.left_wall = false
+	self.right_wall = false
+	for i = 1, 3 do
+		if (physics.raycast(start_points[i], end_left_points[i], my_groups)) then
+			self.left_wall = true
+			break
+		end
+		if (physics.raycast(start_points[i], end_right_points[i], my_groups)) then
+			self.right_wall = true
+			break
+		end
 	end
 end
 
 local function check_moving_y(self, current_position)
-	local delay = 4
-	--две конечные точки для векторов снизу
-	local left_ray_down = vmath.vector3(current_position.x - self.ray_lenght + 4, current_position.y - self.ray_lenght - delay, 0)
-	local right_ray_down = vmath.vector3(current_position.x + self.ray_lenght - 4, current_position.y - self.ray_lenght - delay, 0)
-	--две конечные точки для векторов сверху
-	-- local up_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y + self.ray_lenght - delay, 0)
-	-- local down_ray_left = vmath.vector3(current_position.x - self.ray_lenght, current_position.y - self.ray_lenght, 0)
-	--две начальные точки для векторов
-	local left_position = vmath.vector3(current_position.x - self.ray_lenght + 4, current_position.y, 0)
-	local right_position = vmath.vector3(current_position.x + self.ray_lenght - 4, current_position.y, 0)
-	--группа с которой взаимодействуем
+	local start_points_down = create_rays_points(current_position,
+		vmath.vector3(0, 0, 0), vmath.vector3(self.ray_length - 8, 0, 0))
+	local end_points_down = create_rays_points(current_position,
+		vmath.vector3(0, - (self.ray_length), 0), vmath.vector3(self.ray_length - 8, 0, 0))
 	local my_groups = { hash("ground") }
-
-	draw_line(left_position, left_ray_down)
-	draw_line(right_position, right_ray_down)
-	pprint(physics.raycast(left_position, left_ray_down, my_groups))
-	if (physics.raycast(left_position, left_ray_down, my_groups)
-	or physics.raycast(right_position, right_ray_down, my_groups)) then
+	local hit = nil
+	for i = 1, 3 do
+		hit = physics.raycast(start_points_down[i], end_points_down[i], my_groups)
+		if (hit) then break end
+	end
+	for i = 1, 3 do
+		draw_line(start_points_down[i], end_points_down[i])
+	end
+	if (hit) then
 		self.velocity.y = 0
 		self.is_ground = true
+		--компенсация
+		-- if (current_position.y > hit.position.y) then
+		-- 	pprint(hit)
+		-- 	go.set_position(vmath.vector3(current_position.x, hit.position.y, 0))
+		-- end
+		pprint(current_position)
+		pprint(hit)
 	else
 		self.is_ground = false
 	end
-	-- if (physics.raycast(up_point, up_ray_left, my_groups)
-	-- or physics.raycast(down_point, down_ray_left, my_groups)) then
-	-- 	self.left_wall = true
-	-- else
-	-- 	self.left_wall = false
-	-- end
 end
 
 function update(self, dt)
@@ -117,11 +127,13 @@ function update(self, dt)
 		self.is_double_jump = false
 		self.jump = false
 	end
-	--направление спрайта (flip)
-	if (self.direction > 0 or self.right_wall) then
-		sprite.set_hflip("#sprite", false)
-	else
-		sprite.set_hflip("#sprite", true)
+	if (self.direction ~= 0) then
+		--направление спрайта (flip)
+		if (self.direction > 0 or self.right_wall) then
+			sprite.set_hflip("#sprite", false)
+		else
+			sprite.set_hflip("#sprite", true)
+		end
 	end
 	--включение анимации
 	if (self.direction > 0 and self.is_ground) then
@@ -162,28 +174,14 @@ end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("contact_point_response") then
-		-- pprint("Мы столкнулись")
-		-- -- Get the info needed to move out of collision. We might
-		-- -- get several contact points back and have to calculate
-		-- -- how to move out of all of them by accumulating a
-		-- -- correction vector for this frame:
-		-- if message.distance > 0 then
-		-- 	-- First, project the accumulated correction onto
-		-- 	-- the penetration vector
-		-- 	local proj = vmath.project(self.correction, message.normal * message.distance)
-		-- 	if proj < 1 then
-		-- 		-- Only care for projections that does not overshoot.
-		-- 		local comp = (message.distance - message.distance * proj) * message.normal
-		-- 		-- Apply compensation
-		-- 		go.set_position(go.get_position() + comp)
-		-- 		-- Accumulate correction done
-		-- 		self.correction = self.correction + comp
-		-- 	end
-		-- end
-		-- if (message.normal.y > 0) then
-		-- 	self.velocity.y = 0
-		-- 	self.is_ground = true
-		-- end
+		if message.distance > 0 then
+			local proj = vmath.project(self.correction, message.normal * message.distance)
+			if proj < 1 then
+				local comp = (message.distance - message.distance * proj) * message.normal
+				go.set_position(go.get_position() + comp)
+				self.correction = self.correction + comp
+			end
+		end
 	end
 end
 
