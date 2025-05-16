@@ -1,9 +1,9 @@
-SPEED_WALK = 100
-JUMP_SPEED = 200
-GRAVITY = 500
-FALL_SPEED = -100
-LEFT_WALL = -1
-RIGHT_WALL = 1
+local SPEED_WALK = 100
+local JUMP_SPEED = 200
+local GRAVITY = 500
+-- local FALL_SPEED = -100
+-- local LEFT_WALL = -1
+-- local RIGHT_WALL = 1
 
 function init(self)
 	msg.post(".", "acquire_input_focus")
@@ -28,7 +28,6 @@ function init(self)
 	self.action_id = nil
 	--расположение персонажа в пространстве
 	self.up_ray_dote = false
-
 end
 
 function final(self)
@@ -104,8 +103,6 @@ local function check_moving_y(self, current_position)
 		-- 	pprint(hit)
 		-- 	go.set_position(vmath.vector3(current_position.x, hit.position.y, 0))
 		-- end
-		pprint(current_position)
-		pprint(hit)
 	else
 		self.is_ground = false
 	end
@@ -163,11 +160,13 @@ function update(self, dt)
 			sprite.play_flipbook("#sprite", hash("idle"))
 		end
 		self.animation = hash('idle')
-	end	
+	end
+	--проверка столкновения со стеной
+	if (self.direction > 0 and self.right_wall) then self.velocity.x = 0 end
+	if (self.direction < 0 and self.left_wall) then self.velocity.x = 0 end
 	--установка новой позиции
 	go.set_position(current_position + self.velocity * dt)
 	self.velocity.x = 0
-	self.direction = 0
 	-- self.is_ground = false
 	self.action_id = nil
 end
@@ -197,23 +196,28 @@ local function jump(self)
 end
 
 function on_input(self, action_id, action)
+	pprint(action_id)
 	if (action_id == hash('right')) then
-		if (self.right_wall ~= true) then self.direction = 1 end
+		if (action.pressed) then
+			self.direction = 1
+		elseif (action.released and self.direction == 1) then
+			self.direction = 0
+		end
 		self.action_id = hash('right')
-	end
-	if (action_id == hash('left')) then
-		if (self.left_wall ~= true) then self.direction = -1 end
+	elseif (action_id == hash('left')) then
+		if (action.pressed) then
+			self.direction = -1
+		elseif (action.released and self.direction == -1) then
+			self.direction = 0
+		end
 		self.action_id = hash('left')
-	end
-	walk(self)
-	if (self.is_ground) then
-		if (action_id == hash('jump') and action.pressed) then
+		if (action.released) then print('Я отпустил клавишу') end
+	elseif (action_id == hash('jump') and action.pressed) then
+		if (self.is_ground) then
 			jump(self)
 			self.action_id = hash('jump')
 		end
-	elseif (self.is_double_jump ~= true) then
-		-- self.is_double_jump = true
-		-- jump(self)
-		-- self.action_id = hash('double_jump')
 	end
+	
+	walk(self)
 end
