@@ -1,8 +1,9 @@
 local SPEED_WALK = 100
 local JUMP_SPEED = 200
 local GRAVITY = 500
+local INPUT_COOLDOWN = 0.1
 -- local FALL_SPEED = -100
--- local LEFT_WALL = -1
+-- local LEFT_WALL = -1w 
 -- local RIGHT_WALL = 1
 
 function init(self)
@@ -15,9 +16,13 @@ function init(self)
 	self.is_ground = false
 	self.right_wall = false
 	self.left_wall = false
+	--на стене
+	self.on_right_wall = false
+	self.on_left_wall = false
 	self.correction = vmath.vector3()
 
 	self.jump = false
+	self.wall_jump = false
 	--был ли соверше двойной прыжок
 	self.is_double_jump = false
 	--размеры спрайта
@@ -28,7 +33,14 @@ function init(self)
 	self.action_id = nil
 	--расположение персонажа в пространстве
 	self.up_ray_dote = false
+	--воспроизведение не цикличных анимаций. Если сейчас воспроизводится,
+	--блоириуем выполнение теукущих
+	self.is_busy = false
+
+
+	self.input_cooldown = 0
 end
+
 
 function final(self)
 	-- Add finalization code here
@@ -107,22 +119,39 @@ local function check_moving_y(self, current_position)
 		self.is_ground = false
 	end
 end
-
+local function animation_release(self)
+	self.is_busy = false
+end
 function update(self, dt)
 	--текущее положение объекта
 	local current_position = go.get_position()
 	check_moving_x(self, current_position)
 	if (self.jump) then self.jump = false
 	else check_moving_y(self, current_position) end
+	--проверка состояния персонажа относительно стены
+	if (self.right_wall and self.action_id == hash('right')) then
+		self.on_right_wall = true
+	elseif (self.left_wall and self.action_id == hash('left')) then
+		self.on_left_wall = true
+	else
+		self.on_right_wall = false
+		self.on_left_wall = false
+	end
 	--применение гравитации
 	self.velocity.y = self.velocity.y - GRAVITY * dt
-	if (self.is_ground
-	or (self.right_wall and self.action_id == hash('right'))
-	or (self.left_wall and self.action_id == hash('left'))) then
+	if (self.is_ground or self.on_right_wall or self.on_left_wall) then
 		self.velocity.y = 0
-		--сбрасываем двойно прыжок
-		self.is_double_jump = false
+		--если мы на стене, то двойной прыжок сделать нельзя
+		if (self.on_right_wall or self.on_left_wall) then
+			self.is_double_jump = true
+		else
+			--иначе сбрасываем двойно прыжок
+			self.is_double_jump = false
+		end
+		--сьрасываем прыжок
 		self.jump = false
+		--освобождение анимации
+		animation_release(self)
 	end
 	if (self.direction ~= 0) then
 		--направление спрайта (flip)
@@ -147,14 +176,14 @@ function update(self, dt)
 		sprite.play_flipbook("#sprite", hash("fall"))
 		self.animation = hash('fall')
 	elseif (self.velocity.y > 0) then
-		sprite.play_flipbook("#sprite", hash("jump"))
-		self.animation = hash('jump')
+		if (self.is_busy ~= true) then
+			sprite.play_flipbook("#sprite", hash("jump"))
+			self.animation = hash('jump')
+		end
 	elseif ((self.right_wall or self.left_wall) and self.is_ground ~= true) then
 		sprite.play_flipbook("#sprite", hash("wall_jump"))
 		self.animation = hash('wall_jump')
-	elseif (self.action_id == hash('double_jump')) then
-		sprite.play_flipbook("#sprite", hash("double_jump"))
-		self.animation = hash('double_jump')
+		animation_release(self)
 	else
 		if (self.animation ~= hash('idle')) then
 			sprite.play_flipbook("#sprite", hash("idle"))
@@ -167,8 +196,8 @@ function update(self, dt)
 	--установка новой позиции
 	go.set_position(current_position + self.velocity * dt)
 	self.velocity.x = 0
-	-- self.is_ground = false
 	self.action_id = nil
+	self.input_cooldown = math.max(0, self.input_cooldown - dt)
 end
 
 function on_message(self, message_id, message, sender)
@@ -189,14 +218,27 @@ local function walk(self)
 end
 
 local function jump(self)
-	pprint('this is jump')
 	self.velocity.y = JUMP_SPEED
 	self.is_ground = false
-	self.jump = true
+end
+
+local function wall_jump(self)
+	self.velocity = vmath.vector3(100 * self.direction, JUMP_SPEED, 0)
+	self.is_ground = false
+	self.wall_jump = true
+	-- self.on_right_wall = false
+	-- self.on_left_wall = false
 end
 
 function on_input(self, action_id, action)
-	pprint(action_id)
+	if self.input_cooldown > 0 then
+		return
+	else
+		-- if (self.wall_jump) then
+		-- 	self.wall_jump = false
+		-- 	self.direction = 0
+		-- end
+	end
 	if (action_id == hash('right')) then
 		if (action.pressed) then
 			self.direction = 1
@@ -211,13 +253,32 @@ function on_input(self, action_id, action)
 			self.direction = 0
 		end
 		self.action_id = hash('left')
-		if (action.released) then print('Я отпустил клавишу') end
 	elseif (action_id == hash('jump') and action.pressed) then
+		print(action_id)
+		if (self.on_right_wall) then
+			self.direction = -1
+			wall_jump(self)
+			self.input_cooldown = INPUT_COOLDOWN
+			print('Мы справа')
+		elseif (self.on_left_wall) then
+			self.direction = 1
+			wall_jump(self)
+			self.input_cooldown = INPUT_COOLDOWN
+			print('Мы слева')
+		end
 		if (self.is_ground) then
 			jump(self)
+			self.jump = true
 			self.action_id = hash('jump')
+		elseif (self.is_double_jump ~= true) then
+			jump(self)
+			self.is_double_jump = true
+			self.action_id = hash('double_jump')
+			self.is_busy = true
+			--сообщение компоненту sprite: воспроизведи анимацию. В ананимной фунции
+			--освобождаем персонажа от проигранной анимации (после выполнения)
+			sprite.play_flipbook("#sprite", "double_jump", function() animation_release(self) end)
 		end
 	end
-	
 	walk(self)
 end

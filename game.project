@@ -42,3 +42,6 @@ fixed_update_frequency = 60
 use_fixed_timestep = 0
 debug = 0
 
+[input]
+repeat_interval = 0.2
+
